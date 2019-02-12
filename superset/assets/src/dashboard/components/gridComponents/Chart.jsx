@@ -50,6 +50,7 @@ class Chart extends React.Component {
     this.addFilter = this.addFilter.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportXLSX = this.exportXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -128,6 +129,10 @@ class Chart extends React.Component {
     exportChart(this.props.formData, 'csv');
   }
 
+  exportXLSX() {
+    exportChart(this.props.formData, 'xlsx');
+  }
+
   forceRefresh() {
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
@@ -178,6 +183,7 @@ class Chart extends React.Component {
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          exportXLSX={this.exportXLSX}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}

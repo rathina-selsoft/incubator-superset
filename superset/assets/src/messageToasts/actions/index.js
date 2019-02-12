@@ -43,6 +43,7 @@ export function addInfoToast(text) {
 
 export const ADD_SUCCESS_TOAST = 'ADD_SUCCESS_TOAST';
 export function addSuccessToast(text) {
+  console.log('ADD_SUCCESS_TOAST')
   return dispatch =>
     dispatch(addToast({ text, toastType: SUCCESS_TOAST, duration: 4000 }));
 }

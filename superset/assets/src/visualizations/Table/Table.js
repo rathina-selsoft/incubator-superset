@@ -1,13 +1,14 @@
-import d3 from 'd3';
-import $ from 'jquery';
-import PropTypes from 'prop-types';
-import dt from 'datatables.net-bs';
-import 'datatables.net-bs/css/dataTables.bootstrap.css';
-import dompurify from 'dompurify';
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
-import { getTimeFormatter } from '@superset-ui/time-format';
-import { fixDataTableBodyHeight } from '../../modules/utils';
-import './Table.css';
+import d3 from "d3";
+import $ from "jquery";
+import PropTypes from "prop-types";
+import dt from "datatables.net-bs";
+import "datatables.net-bs/css/dataTables.bootstrap.css";
+import dompurify from "dompurify";
+import { getNumberFormatter, NumberFormats } from "@superset-ui/number-format";
+import { getTimeFormatter } from "@superset-ui/time-format";
+import { fixDataTableBodyHeight } from "../../modules/utils";
+import "./Table.css";
+import ModalTrigger from "src/components/ModalTrigger";
 
 dt(window, $);
 
@@ -17,34 +18,31 @@ const propTypes = {
   height: PropTypes.number,
   alignPositiveNegative: PropTypes.bool,
   colorPositiveNegative: PropTypes.bool,
-  columns: PropTypes.arrayOf(PropTypes.shape({
-    key: PropTypes.string,
-    label: PropTypes.string,
-    format: PropTypes.string,
-  })),
+  columns: PropTypes.arrayOf(
+    PropTypes.shape({
+      key: PropTypes.string,
+      label: PropTypes.string,
+      format: PropTypes.string
+    })
+  ),
   filters: PropTypes.object,
   includeSearch: PropTypes.bool,
-  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.object,
-  ])),
+  metrics: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.object])
+  ),
   onAddFilter: PropTypes.func,
   onRemoveFilter: PropTypes.func,
   orderDesc: PropTypes.bool,
-  pageLength: PropTypes.oneOfType([
-    PropTypes.number,
-    PropTypes.string,
-  ]),
-  percentMetrics: PropTypes.arrayOf(PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.object,
-  ])),
+  pageLength: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  percentMetrics: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.object])
+  ),
   tableFilter: PropTypes.bool,
   tableTimestampFormat: PropTypes.string,
   timeseriesLimitMetric: PropTypes.oneOfType([
     PropTypes.string,
-    PropTypes.object,
-  ]),
+    PropTypes.object
+  ])
 };
 
 const formatValue = getNumberFormatter(NumberFormats.INTEGER);
@@ -68,16 +66,17 @@ function TableVis(element, props) {
     percentMetrics,
     tableFilter,
     tableTimestampFormat,
-    timeseriesLimitMetric,
+    timeseriesLimitMetric
   } = props;
 
   const $container = $(element);
 
-  const metrics = (rawMetrics || []).map(m => m.label || m)
+  const metrics = (rawMetrics || [])
+    .map(m => m.label || m)
     // Add percent metrics
-    .concat((percentMetrics || []).map(m => '%' + m))
+    .concat((percentMetrics || []).map(m => "%" + m))
     // Removing metrics (aggregates) that are strings
-    .filter(m => (typeof data[0][m]) === 'number');
+    .filter(m => typeof data[0][m] === "number");
 
   function col(c) {
     const arr = [];
@@ -99,56 +98,75 @@ function TableVis(element, props) {
 
   const tsFormatter = getTimeFormatter(tableTimestampFormat);
 
-  const div = d3.select(element);
-  div.html('');
-  const table = div.append('table')
-    .classed(
-      'dataframe dataframe table table-striped ' +
-      'table-condensed table-hover dataTable no-footer', true)
-    .attr('width', '100%');
+  columns.push({
+    key: "Action",
+    label: "Action"
+  });
 
-  table.append('thead').append('tr')
-    .selectAll('th')
+  const div = d3.select(element);
+  div.html("");
+  const table = div
+    .append("table")
+    .classed(
+      "dataframe dataframe table table-striped " +
+        "table-condensed table-hover dataTable no-footer",
+      true
+    )
+    .attr("width", "100%");
+
+  table
+    .append("thead")
+    .append("tr")
+    .selectAll("th")
     .data(columns.map(c => c.label))
     .enter()
-    .append('th')
+    .append("th")
     .text(d => d);
 
-  table.append('tbody')
-    .selectAll('tr')
+  table
+    .append("tbody")
+    .selectAll("tr")
     .data(data)
     .enter()
-    .append('tr')
-    .selectAll('td')
-    .data(row => columns.map(({ key, format }) => {
-      const val = row[key];
-      let html;
-      const isMetric = metrics.indexOf(key) >= 0;
-      if (key === '__timestamp') {
-        html = tsFormatter(val);
-      }
-      if (typeof (val) === 'string') {
-        html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
-      }
-      if (isMetric) {
-        html = getNumberFormatter(format)(val);
-      }
-      if (key[0] === '%') {
-        html = formatPercent(val);
-      }
+    .append("tr")
+    .selectAll("td")
+    .data(row =>
+      columns.map(({ key, format }) => {
+        const eventData = row;
+        const val = row[key];
 
-      return {
-        col: key,
-        val,
-        html,
-        isMetric,
-      };
-    }))
+        let html;
+        const isMetric = metrics.indexOf(key) >= 0;
+        if (key === "__timestamp") {
+          html = tsFormatter(val);
+        }
+        if (typeof val === "string") {
+          html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
+        }
+        if (isMetric) {
+          html = getNumberFormatter(format)(val);
+        }
+        if (key[0] === "%") {
+          html = formatPercent(val);
+        }
+        if (key === "Action") {
+          html = `<button>Edit</button>`;
+        }
+
+        return {
+          col: key,
+          val,
+          html,
+          isMetric,
+          eventData
+        };
+      })
+    )
     .enter()
-    .append('td')
-    .style('background-image', function (d) {
+    .append("td")
+    .style("background-image", function(d) {
       if (d.isMetric) {
-        const r = (colorPositiveNegative && d.val < 0) ? 150 : 0;
+        const r = colorPositiveNegative && d.val < 0 ? 150 : 0;
         if (alignPositiveNegative) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
           // The 0.01 to 0.001 is a workaround for what appears to be a
@@ -161,21 +179,24 @@ function TableVis(element, props) {
         const posExtent = Math.abs(Math.max(maxes[d.col], 0));
         const negExtent = Math.abs(Math.min(mins[d.col], 0));
         const tot = posExtent + negExtent;
-        const perc1 = Math.round((Math.min(negExtent + d.val, negExtent) / tot) * 100);
+        const perc1 = Math.round(
+          (Math.min(negExtent + d.val, negExtent) / tot) * 100
+        );
         const perc2 = Math.round((Math.abs(d.val) / tot) * 100);
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
           `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
-          `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
+          `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 +
+            perc2}%, ` +
           `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
     })
-    .classed('text-right', d => d.isMetric)
-    .attr('title', (d) => {
-      if (typeof d.val === 'string') {
+    .classed("text-right", d => d.isMetric)
+    .attr("title", d => {
+      if (typeof d.val === "string") {
         return d.val;
       }
       if (!Number.isNaN(d.val)) {
@@ -183,31 +204,33 @@ function TableVis(element, props) {
       }
       return null;
     })
-    .attr('data-sort', d => (d.isMetric) ? d.val : null)
+    .attr("data-sort", d => (d.isMetric ? d.val : null))
     // Check if the dashboard currently has a filter for each row
-    .classed('filtered', d =>
-      filters &&
-      filters[d.col] &&
-      filters[d.col].indexOf(d.val) >= 0,
+    .classed(
+      "filtered",
+      d => filters && filters[d.col] && filters[d.col].indexOf(d.val) >= 0
     )
-    .on('click', function (d) {
+    .on("click", function(d) {
       if (!d.isMetric && tableFilter) {
         const td = d3.select(this);
-        if (td.classed('filtered')) {
+        if (td.classed("filtered")) {
           onRemoveFilter(d.col, [d.val]);
-          d3.select(this).classed('filtered', false);
+          d3.select(this).classed("filtered", false);
         } else {
-          d3.select(this).classed('filtered', true);
+          d3.select(this).classed("filtered", true);
           onAddFilter(d.col, [d.val]);
         }
       }
+      if (d.col === "Action") {
+        ModalTrigger.ChildProps.onTableClick(d.eventData);
+      }
     })
-    .style('cursor', d => (!d.isMetric) ? 'pointer' : '')
-    .html(d => d.html ? d.html : d.val);
+    .style("cursor", d => (!d.isMetric ? "pointer" : ""))
+    .html(d => (d.html ? d.html : d.val));
 
   const paging = pageLength && pageLength > 0;
 
-  const datatable = $container.find('.dataTable').DataTable({
+  const datatable = $container.find(".dataTable").DataTable({
     paging,
     pageLength,
     aaSorting: [],
@@ -215,10 +238,10 @@ function TableVis(element, props) {
     bInfo: false,
     scrollY: `${height}px`,
     scrollCollapse: true,
-    scrollX: true,
+    scrollX: true
   });
 
-  fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
+  fixDataTableBodyHeight($container.find(".dataTables_wrapper"), height);
   // Sorting table by main column
   let sortBy;
   const limitMetric = Array.isArray(timeseriesLimitMetric)
@@ -234,7 +257,7 @@ function TableVis(element, props) {
   if (sortBy) {
     const keys = columns.map(c => c.key);
     const index = keys.indexOf(sortBy);
-    datatable.column(index).order(orderDesc ? 'desc' : 'asc');
+    datatable.column(index).order(orderDesc ? "desc" : "asc");
     if (metrics.indexOf(sortBy) < 0) {
       // Hiding the sortBy column if not in the metrics list
       datatable.column(index).visible(false);
@@ -243,7 +266,7 @@ function TableVis(element, props) {
   datatable.draw();
 }
 
-TableVis.displayName = 'TableVis';
+TableVis.displayName = "TableVis";
 TableVis.propTypes = propTypes;
 
 export default TableVis;

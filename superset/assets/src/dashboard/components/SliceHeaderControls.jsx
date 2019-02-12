@@ -8,6 +8,7 @@ import {
   Logger,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_REFRESH_CHART,
 } from '../../logger';
 
@@ -50,6 +51,7 @@ class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportXLSX = this.exportXLSX.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -67,6 +69,18 @@ class SliceHeaderControls extends React.PureComponent {
     this.props.exportCSV(this.props.slice.slice_id);
     Logger.append(
       LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+      {
+        slice_id: this.props.slice.slice_id,
+        is_cached: this.props.isCached,
+      },
+      true,
+    );
+  }
+
+  exportXLSX() {
+    this.props.exportXLSX(this.props.slice.slice_id);
+    Logger.append(
+      LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
       {
         slice_id: this.props.slice.slice_id,
         is_cached: this.props.isCached,
@@ -144,6 +158,7 @@ class SliceHeaderControls extends React.PureComponent {
           )}
 
           <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          <MenuItem onClick={this.exportXLSX}>{t('Export XLSX')}</MenuItem>
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>

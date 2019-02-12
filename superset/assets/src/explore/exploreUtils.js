@@ -1,12 +1,12 @@
 /* eslint camelcase: 0 */
-import URI from 'urijs';
-import { availableDomains } from '../utils/hostNamesConfig';
+import URI from "urijs";
+import { availableDomains } from "../utils/hostNamesConfig";
 
 const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
   const slice = explore.slice;
-  return slice ? (slice.slice_id) : 0;
+  return slice ? slice.slice_id : 0;
 }
 
 let requestCounter = 0;
@@ -25,57 +25,73 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
     return null;
   }
   const uri = URI(window.location.search);
-  const endpoint = isNative ? 'annotation_json' : 'slice_json';
-  return uri.pathname(`/superset/${endpoint}/${slice_id}`)
+  const endpoint = isNative ? "annotation_json" : "slice_json";
+  return uri
+    .pathname(`/superset/${endpoint}/${slice_id}`)
     .search({
-      form_data: JSON.stringify(form_data,
-        (key, value) => value === null ? undefined : value),
-    }).toString();
+      form_data: JSON.stringify(form_data, (key, value) =>
+        value === null ? undefined : value
+      )
+    })
+    .toString();
 }
 
-export function getURIDirectory(formData, endpointType = 'base') {
+export function getURIDirectory(formData, endpointType = "base") {
   // Building the directory part of the URI
-  let directory = '/superset/explore/';
-  if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
-    directory = '/superset/explore_json/';
+  let directory = "/superset/explore/";
+  if (
+    ["json", "csv", "query", "results", "samples", "xlsx"].indexOf(
+      endpointType
+    ) >= 0
+  ) {
+    directory = "/superset/explore_json/";
   }
   return directory;
 }
 
-export function getExploreLongUrl(formData, endpointType, allowOverflow = true, extraSearch = {}) {
+export function getExploreLongUrl(
+  formData,
+  endpointType,
+  allowOverflow = true,
+  extraSearch = {}
+) {
   if (!formData.datasource) {
     return null;
   }
 
-  const uri = new URI('/');
+  const uri = new URI("/");
   const directory = getURIDirectory(formData, endpointType);
   const search = uri.search(true);
-  Object.keys(extraSearch).forEach((key) => {
+  Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
   search.form_data = JSON.stringify(formData);
-  if (endpointType === 'standalone') {
-    search.standalone = 'true';
+  if (endpointType === "standalone") {
+    search.standalone = "true";
   }
-  const url = uri.directory(directory).search(search).toString();
+  const url = uri
+    .directory(directory)
+    .search(search)
+    .toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
     const minimalFormData = {
       datasource: formData.datasource,
-      viz_type: formData.viz_type,
+      viz_type: formData.viz_type
     };
-    return getExploreLongUrl(
-      minimalFormData, endpointType, false, { URL_IS_TOO_LONG_TO_SHARE: null });
+    return getExploreLongUrl(minimalFormData, endpointType, false, {
+      URL_IS_TOO_LONG_TO_SHARE: null
+    });
   }
   return url;
 }
 
 export function getExploreUrlAndPayload({
   formData,
-  endpointType = 'base',
+  endpointType = "base",
   force = false,
   curUrl = null,
   requestParams = {},
-  allowDomainSharding = false,
+  allowDomainSharding = false
 }) {
   if (!formData.datasource) {
     return null;
@@ -87,8 +103,8 @@ export function getExploreUrlAndPayload({
   let uri = new URI({
     protocol: location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
-    path: '/',
+    port: location.port ? location.port : "",
+    path: "/"
   });
 
   if (curUrl) {
@@ -103,26 +119,29 @@ export function getExploreUrlAndPayload({
     search.form_data = JSON.stringify({ slice_id: formData.slice_id });
   }
   if (force) {
-    search.force = 'true';
+    search.force = "true";
   }
-  if (endpointType === 'csv') {
-    search.csv = 'true';
+  if (endpointType === "csv") {
+    search.csv = "true";
   }
-  if (endpointType === 'standalone') {
-    search.standalone = 'true';
+  if (endpointType === "xlsx") {
+    search.xlsx = "true";
   }
-  if (endpointType === 'query') {
-    search.query = 'true';
+  if (endpointType === "standalone") {
+    search.standalone = "true";
   }
-  if (endpointType === 'results') {
-    search.results = 'true';
+  if (endpointType === "query") {
+    search.query = "true";
   }
-  if (endpointType === 'samples') {
-    search.samples = 'true';
+  if (endpointType === "results") {
+    search.results = "true";
+  }
+  if (endpointType === "samples") {
+    search.samples = "true";
   }
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
-    paramNames.forEach((name) => {
+    paramNames.forEach(name => {
       if (requestParams.hasOwnProperty(name)) {
         search[name] = requestParams[name];
       }
@@ -133,7 +152,7 @@ export function getExploreUrlAndPayload({
 
   return {
     url: uri.toString(),
-    payload,
+    payload
   };
 }
 
@@ -141,21 +160,21 @@ export function exportChart(formData, endpointType) {
   const { url, payload } = getExploreUrlAndPayload({
     formData,
     endpointType,
-    allowDomainSharding: false,
+    allowDomainSharding: false
   });
 
-  const exploreForm = document.createElement('form');
+  const exploreForm = document.createElement("form");
   exploreForm.action = url;
-  exploreForm.method = 'POST';
-  exploreForm.target = '_blank';
-  const token = document.createElement('input');
-  token.type = 'hidden';
-  token.name = 'csrf_token';
-  token.value = (document.getElementById('csrf_token') || {}).value;
+  exploreForm.method = "POST";
+  exploreForm.target = "_blank";
+  const token = document.createElement("input");
+  token.type = "hidden";
+  token.name = "csrf_token";
+  token.value = (document.getElementById("csrf_token") || {}).value;
   exploreForm.appendChild(token);
-  const data = document.createElement('input');
-  data.type = 'hidden';
-  data.name = 'form_data';
+  const data = document.createElement("input");
+  data.type = "hidden";
+  data.name = "form_data";
   data.value = JSON.stringify(payload);
   exploreForm.appendChild(data);
 

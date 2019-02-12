@@ -1,7 +1,7 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
-import controlMap from './controls';
+import controlMap from "./controls";
 
 const controlTypes = Object.keys(controlMap);
 
@@ -13,7 +13,7 @@ const propTypes = {
   label: PropTypes.string.isRequired,
   choices: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.array),
-    PropTypes.func,
+    PropTypes.func
   ]),
   description: PropTypes.string,
   tooltipOnClick: PropTypes.func,
@@ -29,15 +29,15 @@ const propTypes = {
     PropTypes.object,
     PropTypes.bool,
     PropTypes.array,
-    PropTypes.func,
-  ]),
+    PropTypes.func
+  ])
 };
 
 const defaultProps = {
   renderTrigger: false,
   validators: [],
   hidden: false,
-  validationErrors: [],
+  validationErrors: []
 };
 
 export default class Control extends React.PureComponent {
@@ -66,15 +66,22 @@ export default class Control extends React.PureComponent {
       validationErrors = currentErrors;
     }
 
-    if (value !== this.props.value || validationErrors !== this.props.validationErrors) {
-      this.props.actions.setControlValue(this.props.name, value, validationErrors);
+    if (
+      value !== this.props.value ||
+      validationErrors !== this.props.validationErrors
+    ) {
+      this.props.actions.setControlValue(
+        this.props.name,
+        value,
+        validationErrors
+      );
     }
   }
   validate(value) {
     const validators = this.props.validators;
     const validationErrors = [];
     if (validators && validators.length > 0) {
-      validators.forEach((f) => {
+      validators.forEach(f => {
         const v = f(value);
         if (v) {
           validationErrors.push(v);
@@ -85,7 +92,7 @@ export default class Control extends React.PureComponent {
   }
   render() {
     const ControlType = controlMap[this.props.type];
-    const divStyle = this.props.hidden ? { display: 'none' } : null;
+    const divStyle = this.props.hidden ? { display: "none" } : null;
     return (
       <div
         data-test={this.props.name}
@@ -98,10 +105,16 @@ export default class Control extends React.PureComponent {
           hovered={this.state.hovered}
           {...this.props}
         />
+        <Child options={this.props} filter={this.onChange} />
       </div>
     );
   }
 }
+
+const Child = props => {
+  Control.ChildProps = props;
+  return <div />;
+};
 
 Control.propTypes = propTypes;
 Control.defaultProps = defaultProps;

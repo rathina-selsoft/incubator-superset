@@ -487,6 +487,11 @@ class BaseViz(object):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
+    
+    def get_xlsx(self):
+        df = self.get_df()
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        return df.to_csv(index=include_index, **config.get('XLSX_EXPORT'))
 
     def get_data(self, df):
         return df.to_dict(orient='records')

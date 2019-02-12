@@ -46,7 +46,7 @@ from superset.utils.dates import now_as_float
 from .base import (
     api, BaseSupersetView,
     check_ownership,
-    CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
+    CsvResponse, XlsxResponse, data_payload_response, DeleteMixin, generate_download_headers,
     get_error_msg, handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
@@ -1109,7 +1109,7 @@ class Superset(BaseSupersetView):
 
     def generate_json(
             self, datasource_type, datasource_id, form_data,
-            csv=False, query=False, force=False, results=False,
+            csv=False, xlsx=False, query=False, force=False, results=False,
             samples=False,
     ):
         viz_obj = self.get_viz(
@@ -1125,6 +1125,12 @@ class Superset(BaseSupersetView):
                 viz_obj.get_csv(),
                 status=200,
                 headers=generate_download_headers('csv'),
+                mimetype='application/csv')
+        if xlsx:
+            return XlsxResponse(
+                viz_obj.get_xlsx(),
+                status=200,
+                headers=generate_download_headers('xlsx'),
                 mimetype='application/csv')
 
         if query:
@@ -1188,6 +1194,7 @@ class Superset(BaseSupersetView):
 
         TODO: break into one endpoint for each return shape"""
         csv = request.args.get('csv') == 'true'
+        xlsx = request.args.get('xlsx') == 'true'
         query = request.args.get('query') == 'true'
         results = request.args.get('results') == 'true'
         samples = request.args.get('samples') == 'true'
@@ -1202,6 +1209,7 @@ class Superset(BaseSupersetView):
             datasource_id=datasource_id,
             form_data=form_data,
             csv=csv,
+            xlsx=xlsx,
             query=query,
             results=results,
             force=force,

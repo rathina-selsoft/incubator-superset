@@ -204,11 +204,17 @@ SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(['csv'])
+ALLOWED_EXTENSIONS = set(['csv', 'xlsx'])
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method
 # note: index option should not be overridden
 CSV_EXPORT = {
+    'encoding': 'utf-8',
+}
+
+# XLSX Options: key/value pairs that will be passed as argument to DataFrame.to_xlsx method
+# note: index option should not be overridden
+XLSX_EXPORT = {
     'encoding': 'utf-8',
 }
 
@@ -296,7 +302,7 @@ BACKUP_COUNT = 30
 #     pass
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', 'pk.eyJ1IjoicmFtZXNocmFzYWl5YW4iLCJhIjoiY2puYzRqOXp1NWtnaTNxbjEzdXh5MjhiciJ9.XSh-K7w3aKhdgdmdoXwy0A')
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored

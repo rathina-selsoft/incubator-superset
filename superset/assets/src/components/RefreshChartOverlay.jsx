@@ -24,10 +24,16 @@ class RefreshChartOverlay extends React.PureComponent {
           >
             {t('Run Query')}
           </Button>
+          <Child runQuery={this.props.onQuery} />
         </div>
       </div>
     );
   }
+}
+
+const Child = (props) => {
+  RefreshChartOverlay.ChildProps = props;
+  return (<div></div>)
 }
 
 RefreshChartOverlay.propTypes = propTypes;

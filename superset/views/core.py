@@ -542,6 +542,100 @@ class SliceAddView(SliceModelView):  # noqa
 
 appbuilder.add_view_no_menu(SliceAddView)
 
+class WokerQueueModelView(SupersetModelView, DeleteMixin):
+    route_base = '/worker_queue'
+    datamodel = SQLAInterface(models.WorkerQueue)
+
+    list_title = _('List WorkerQueue')
+    show_title = _('Show WorkerQueue')
+    add_title = _('Add WorkerQueue')
+    edit_title = _('Edit WorkerQueue')
+
+    list_columns = ['worker_queue_link', 'creator', 'modified']
+    order_columns = ['modified']
+    edit_columns = [
+        'worker_queue_title', 'slug', 'owners', 'position_json', 'css',
+        'json_metadata']
+    show_columns = edit_columns + ['table_names', 'slices']
+    search_columns = ('worker_queue_title', 'slug', 'owners')
+    add_columns = edit_columns
+    # base_order = ('changed_on', 'desc')
+
+    description_columns = {
+        'position_json': _(
+            'This json object describes the positioning of the widgets in '
+            'the worker_queue. It is dynamically generated when adjusting '
+            'the widgets size and positions by using drag & drop in '
+            'the worker_queue view'),
+        'css': _(
+            'The css for individual worker_queues can be altered here, or '
+            'in the worker_queue view where changes are immediately '
+            'visible'),
+        'slug': _('To get a readable URL for your worker_queue'),
+        'json_metadata': _(
+            'This JSON object is generated dynamically when clicking '
+            'the save or overwrite button in the worker_queue view. It '
+            'is exposed here for reference and for power users who may '
+            'want to alter specific parameters.'),
+        'owners': _('Owners is a list of users who can alter the worker_queue.'),
+    }
+ 
+    label_columns = {
+        'worker_queue_link': _('Worker Queue'),
+        'worker_queue_title': _('Title'),
+        'slug': _('Slug'),
+        'slices': _('Charts'),
+        'owners': _('Owners'),
+        'creator': _('Creator'),
+        'modified': _('Modified'),
+        'position_json': _('Position JSON'),
+        'css': _('CSS'),
+        'json_metadata': _('JSON Metadata'),
+        'table_names': _('Underlying Tables'),
+    }
+
+    def pre_add(self, obj):
+        obj.slug = obj.slug.strip() or None
+        if obj.slug:
+            obj.slug = obj.slug.replace(' ', '-')
+            obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
+        if g.user not in obj.owners:
+            obj.owners.append(g.user)
+        utils.validate_json(obj.json_metadata)
+        utils.validate_json(obj.position_json)
+        owners = [o for o in obj.owners]
+        for slc in obj.slices:
+            slc.owners = list(set(owners) | set(slc.owners))
+
+    def pre_update(self, obj):
+        check_ownership(obj)
+        self.pre_add(obj)
+
+    def pre_delete(self, obj):
+        check_ownership(obj)
+
+    @action('mulexport', __('Export'), __('Export worker_queue?'), 'fa-database')
+    def mulexport(self, items):
+        if not isinstance(items, list):
+            items = [items]
+        ids = ''.join('&id={}'.format(d.id) for d in items)
+        return redirect(
+            '/worker_queue/export_worker_queues_form?{}'.format(ids[1:]))
+
+    @log_this
+    @has_access
+    @expose('/export_worker_queues_form')
+    def download_worker_queues(self):
+        if request.args.get('action') == 'go':
+            ids = request.args.getlist('id')
+            return Response(
+                models.WorkerQueue.export_worker_queues(ids),
+                headers=generate_download_headers('json'),
+                mimetype='application/text')
+        return self.render_template(
+            'superset/export_worker_queues.html',
+            worker_queues_url='/worker_queue/list',
+        )
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/dashboard'
@@ -637,11 +731,20 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             dashboards_url='/dashboard/list',
         )
 
-
+# db.create_all()
 appbuilder.add_view(
     DashboardModelView,
     'Dashboards',
     label=__('Dashboards'),
+    icon='fa-dashboard',
+    category='',
+    category_icon='')
+
+
+appbuilder.add_view(
+    WokerQueueModelView,
+    'Worker Queue',
+    label=__('Worker Queue'),
     icon='fa-dashboard',
     category='',
     category_icon='')
@@ -2174,6 +2277,83 @@ class Superset(BaseSupersetView):
             entry='dashboard',
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
+            bootstrap_data=json.dumps(bootstrap_data),
+        )
+    
+    @has_access
+    @expose('/worker_queue/<worker_queue_id>/')
+    def worker_queue(self, worker_queue_id):
+        """Server side rendering for a dashboard"""
+        session = db.session()
+        qry = session.query(models.WorkerQueue)
+        if worker_queue_id.isdigit():
+            qry = qry.filter_by(id=int(worker_queue_id))
+        else:
+            qry = qry.filter_by(slug=worker_queue_id)
+
+        work = qry.one_or_none()
+        if not work:
+            abort(404)
+        datasources = set()
+        for slc in work.slices:
+            datasource = slc.datasource
+            if datasource:
+                datasources.add(datasource)
+
+        if config.get('ENABLE_ACCESS_REQUEST'):
+            for datasource in datasources:
+                if datasource and not security_manager.datasource_access(datasource):
+                    flash(
+                        __(security_manager.get_datasource_access_error_msg(datasource)),
+                        'danger')
+                    return redirect(
+                        'superset/request_access/?'
+                        f'worker_queue_id={work.id}&')
+
+        dash_edit_perm = check_ownership(work, raise_if_false=False) and \
+            security_manager.can_access('can_save_dash', 'Superset')
+        dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
+        superset_can_explore = security_manager.can_access('can_explore', 'Superset')
+        slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
+
+        standalone_mode = request.args.get('standalone') == 'true'
+        edit_mode = request.args.get('edit') == 'true'
+
+        # Hack to log the dashboard_id properly, even when getting a slug
+        @log_this
+        def worker_queue(**kwargs):  # noqa
+            pass
+        worker_queue(
+            dashboard_id=work.id,
+            dashboard_version='v2',
+            dash_edit_perm=dash_edit_perm,
+            edit_mode=edit_mode)
+
+        dashboard_data = work.data
+        dashboard_data.update({
+            'standalone_mode': standalone_mode,
+            'dash_save_perm': dash_save_perm,
+            'dash_edit_perm': dash_edit_perm,
+            'superset_can_explore': superset_can_explore,
+            'slice_can_edit': slice_can_edit,
+        })
+
+        bootstrap_data = {
+            'user_id': g.user.get_id(),
+            'dashboard_data': dashboard_data,
+            'datasources': {ds.uid: ds.data for ds in datasources},
+            'common': self.common_bootsrap_payload(),
+            'editMode': edit_mode,
+        }
+
+        if request.args.get('json') == 'true':
+            return json_success(json.dumps(bootstrap_data))
+
+        return self.render_template(
+            'superset/worker_queue.html',
+            entry='worker_queue',
+            standalone_mode=standalone_mode,
+            title=work.worker_queue_title,
             bootstrap_data=json.dumps(bootstrap_data),
         )
 

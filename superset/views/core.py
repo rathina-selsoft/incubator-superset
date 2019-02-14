@@ -542,7 +542,7 @@ class SliceAddView(SliceModelView):  # noqa
 
 appbuilder.add_view_no_menu(SliceAddView)
 
-class WokerQueueModelView(SupersetModelView, DeleteMixin):
+class WorkerQueueModelView(SupersetModelView, DeleteMixin):
     route_base = '/worker_queue'
     datamodel = SQLAInterface(models.WorkerQueue)
 
@@ -731,6 +731,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             dashboards_url='/dashboard/list',
         )
 
+# for only first time
 # db.create_all()
 appbuilder.add_view(
     DashboardModelView,
@@ -742,7 +743,7 @@ appbuilder.add_view(
 
 
 appbuilder.add_view(
-    WokerQueueModelView,
+    WorkerQueueModelView,
     'Worker Queue',
     label=__('Worker Queue'),
     icon='fa-dashboard',
@@ -765,6 +766,22 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
 
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
+
+class WokerQueueModelViewAsync(WorkerQueueModelView):  # noqa
+    route_base = '/worker_queueasync'
+    list_columns = [
+        'id', 'worker_queue_link', 'creator', 'modified', 'worker_queue_title',
+        'changed_on', 'url', 'changed_by_name',
+    ]
+    label_columns = {
+        'worker_queue_link': _('Woker Queue'),
+        'worker_queue_title': _('Title'),
+        'creator': _('Creator'),
+        'modified': _('Modified'),
+    }
+
+
+appbuilder.add_view_no_menu(WokerQueueModelViewAsync)
 
 
 class DashboardAddView(DashboardModelView):  # noqa
@@ -1535,6 +1552,26 @@ class Superset(BaseSupersetView):
                     slc.slice_name,
                     dash.dashboard_title),
                 'info')
+        elif request.args.get('add_to_dash') == 'existing_worker_queue':
+            dash = (
+                db.session.query(models.WorkerQueue)
+                .filter_by(id=int(request.args.get('save_to_worker_queue_id')))
+                .one()
+            )
+
+            # check edit worker queue permissions
+            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+            if not dash_overwrite_perm:
+                return json_error_response(
+                    _('You don\'t have the rights to ') + _('alter this ') +
+                    _('worker queue'),
+                    status=400)
+
+            flash(
+                'Slice [{}] was added to worker queue [{}]'.format(
+                    slc.slice_name,
+                    dash.worker_queue_title),
+                'info')
         elif request.args.get('add_to_dash') == 'new':
             # check create dashboard permissions
             dash_add_perm = security_manager.can_access('can_add', 'DashboardModelView')
@@ -1550,6 +1587,23 @@ class Superset(BaseSupersetView):
                 'Dashboard [{}] just got created and slice [{}] was added '
                 'to it'.format(
                     dash.dashboard_title,
+                    slc.slice_name),
+                'info')
+        elif request.args.get('add_to_dash') == 'new_worker_queue':
+            # check create worker_queue permissions
+            dash_add_perm = security_manager.can_access('can_add', 'WorkerQueueModelView')
+            if not dash_add_perm:
+                return json_error_response(
+                    _('You don\'t have the rights to ') + _('create a ') + _('worker queue'),
+                    status=400)
+
+            dash = models.WorkerQueue(
+                worker_queue_title=request.args.get('new_worker_queue_name'),
+                owners=[g.user] if g.user else [])
+            flash(
+                'Worker Queue [{}] just got created and slice [{}] was added '
+                'to it'.format(
+                    dash.worker_queue_title,
                     slc.slice_name),
                 'info')
 
@@ -2351,7 +2405,7 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             'superset/worker_queue.html',
-            entry='worker_queue',
+            entry='dashboard',
             standalone_mode=standalone_mode,
             title=work.worker_queue_title,
             bootstrap_data=json.dumps(bootstrap_data),

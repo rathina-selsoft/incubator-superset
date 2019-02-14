@@ -123,13 +123,23 @@ export default function(bootstrapData) {
   });
 
   // store the header as a layout component so we can undo/redo changes
-  layout[DASHBOARD_HEADER_ID] = {
-    id: DASHBOARD_HEADER_ID,
-    type: DASHBOARD_HEADER_TYPE,
-    meta: {
-      text: dashboard.dashboard_title,
-    },
-  };
+  if (dashboard.dashboard_title) {
+    layout[DASHBOARD_HEADER_ID] = {
+      id: DASHBOARD_HEADER_ID,
+      type: DASHBOARD_HEADER_TYPE,
+      meta: {
+        text: dashboard.dashboard_title,
+      },
+    };
+  } else {
+    layout[DASHBOARD_HEADER_ID] = {
+      id: DASHBOARD_HEADER_ID,
+      type: DASHBOARD_HEADER_TYPE,
+      meta: {
+        text: dashboard.worker_queue_title,
+      },
+    };
+  }
 
   const dashboardLayout = {
     past: [],

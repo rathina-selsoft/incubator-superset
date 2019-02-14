@@ -16,6 +16,7 @@ const propTypes = {
   form_data: PropTypes.object,
   userId: PropTypes.string.isRequired,
   dashboards: PropTypes.array.isRequired,
+  workerQueue: PropTypes.array.isRequired,
   alert: PropTypes.string,
   slice: PropTypes.object,
   datasource: PropTypes.object,
@@ -26,9 +27,12 @@ class SaveModal extends React.Component {
     super(props);
     this.state = {
       saveToDashboardId: null,
+      saveWorkerQueueId: null,
+      newWokerQueueName: '',
       newDashboardName: '',
       newSliceName: '',
       dashboards: [],
+      workerQueue: [],
       alert: null,
       action: props.can_overwrite ? 'overwrite' : 'saveas',
       addToDash: 'noSave',
@@ -37,8 +41,10 @@ class SaveModal extends React.Component {
   }
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId);
+    this.props.actions.fetchWorkerQueue(this.props.userId);
   }
   onChange(name, event) {
+   
     switch (name) {
       case 'newSliceName':
         this.setState({ newSliceName: event.target.value });
@@ -47,8 +53,15 @@ class SaveModal extends React.Component {
         this.setState({ saveToDashboardId: event.value });
         this.changeDash('existing');
         break;
+      case 'saveWorkerQueueId':
+        this.setState({ saveWorkerQueueId: event.value });
+        this.changeDash('existing_worker_queue');
+        break;
       case 'newDashboardName':
         this.setState({ newDashboardName: event.target.value });
+        break;
+      case 'newWokerQueueName':
+        this.setState({ newWokerQueueName: event.target.value });
         break;
       default:
         break;
@@ -84,6 +97,7 @@ class SaveModal extends React.Component {
     const addToDash = this.state.addToDash;
     sliceParams.add_to_dash = addToDash;
     let dashboard = null;
+    let workerQueue = null;
     switch (addToDash) {
       case 'existing':
         dashboard = this.state.saveToDashboardId;
@@ -93,6 +107,14 @@ class SaveModal extends React.Component {
         }
         sliceParams.save_to_dashboard_id = dashboard;
         break;
+      case 'existing_worker_queue':
+        workerQueue = this.state.saveWorkerQueueId;
+        if (!workerQueue) {
+          this.setState({ alert: t('Please select a worker queue') });
+          return;
+        }
+        sliceParams.save_to_worker_queue_id = workerQueue;
+        break;
       case 'new':
         dashboard = this.state.newDashboardName;
         if (dashboard === '') {
@@ -101,13 +123,23 @@ class SaveModal extends React.Component {
         }
         sliceParams.new_dashboard_name = dashboard;
         break;
+      case 'new_worker_queue':
+        workerQueue = this.state.newWokerQueueName;
+        if (workerQueue === '') {
+          this.setState({ alert: t('Please enter a worker queue name') });
+          return;
+        }
+        sliceParams.new_worker_queue_name = workerQueue;
+        break;
       default:
         dashboard = null;
+        workerQueue = null;
     }
     sliceParams.goto_dash = gotodash;
 
     this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
       // Go to new slice url or dashboard url
+     
       if (gotodash) {
         window.location = supersetURL(data.dashboard);
       } else {
@@ -198,6 +230,26 @@ class SaveModal extends React.Component {
 
           <Radio
             inline
+            disabled={canNotSaveToDash}
+            checked={this.state.addToDash === 'existing_worker_queue'}
+            onChange={this.changeDash.bind(this, 'existing_worker_queue')}
+            data-test="add-to-existing-dashboard"
+          >
+            {t('Add chart to existing worker queue')}
+          </Radio>
+
+          <Select
+            className="save-modal-selector"
+            disabled={canNotSaveToDash}
+            options={this.props.workerQueue}
+            onChange={this.onChange.bind(this, 'saveWorkerQueueId')}
+            autoSize={false}
+            value={this.state.saveWorkerQueueId}
+            placeholder="Select Worker Queue"
+          />
+
+          <Radio
+            inline
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
             disabled={canNotSaveToDash}
@@ -210,6 +262,24 @@ class SaveModal extends React.Component {
             disabled={canNotSaveToDash}
             onFocus={this.changeDash.bind(this, 'new')}
             placeholder={t('[dashboard name]')}
+          />
+
+          <br />
+
+          <Radio
+            inline
+            checked={this.state.addToDash === 'new_worker_queue'}
+            onChange={this.changeDash.bind(this, 'new_worker_queue')}
+            disabled={canNotSaveToDash}
+            data-test="add-to-new-worker-queue"
+          >
+            {t('Add to new worker queue')} &nbsp;
+          </Radio>
+          <input
+            onChange={this.onChange.bind(this, 'newWokerQueueName')}
+            disabled={canNotSaveToDash}
+            onFocus={this.changeDash.bind(this, 'new_worker_queue')}
+            placeholder={t('[worker queue name]')}
           />
         </Modal.Body>
 
@@ -229,8 +299,9 @@ class SaveModal extends React.Component {
             disabled={this.state.addToDash === 'noSave' || canNotSaveToDash}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
-            {t('Save & go to dashboard')}
+            {t('Save & go to dashboard or worker queue')}
           </Button>
+         
         </Modal.Footer>
       </Modal>
     );
@@ -246,6 +317,7 @@ function mapStateToProps({ explore, saveModal }) {
     can_overwrite: explore.can_overwrite,
     userId: explore.user_id,
     dashboards: saveModal.dashboards,
+    workerQueue: saveModal.workerQueue,
     alert: saveModal.saveModalAlert,
   };
 }

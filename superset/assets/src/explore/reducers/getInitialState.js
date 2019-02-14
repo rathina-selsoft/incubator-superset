@@ -47,6 +47,7 @@ export default function getInitialState(bootstrapData) {
     },
     saveModal: {
       dashboards: [],
+      workerQueue: [],
       saveModalAlert: null,
     },
     explore: bootstrappedState,

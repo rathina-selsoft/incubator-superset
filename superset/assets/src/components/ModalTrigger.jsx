@@ -4,7 +4,7 @@ import { Modal, MenuItem, Table } from "react-bootstrap";
 import cx from "classnames";
 
 import Button from "./Button";
-import { values } from 'd3';
+import { values } from "d3";
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -123,22 +123,25 @@ export default class ModalTrigger extends React.Component {
           <Modal.Body>
             <Table striped bordered hover>
               <thead>
-               {Object.keys(this.state.apiData[0]).map((key) => {
-                 return(
-                   <th>{key}</th>
-                 )
-               })}
+                <tr>
+                  {Object.keys(this.state.apiData[0]).map(key => {
+                    return <th>{key}</th>;
+                  })}
+                </tr>
               </thead>
               <tbody>
-                {this.state.apiData.map((value) => {
-                  Object.values(value).map((val) => {
-                    console.log(val)
-                    return(
-                      <tr>
-                        <td>{val}</td>
-                      </tr>
-                    )
-                  })
+                {this.state.apiData.map(key => {
+                  return (
+                    <tr>
+                      {Object.values(key).map(val => {
+                        if (val instanceof Object) {
+                          return <td />;
+                        } else {
+                          return <td>{val}</td>;
+                        }
+                      })}
+                    </tr>
+                  );
                 })}
               </tbody>
             </Table>

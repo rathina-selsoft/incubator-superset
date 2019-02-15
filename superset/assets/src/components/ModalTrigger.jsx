@@ -4,6 +4,7 @@ import { Modal, MenuItem, Table } from "react-bootstrap";
 import cx from "classnames";
 
 import Button from "./Button";
+import { values } from 'd3';
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -43,6 +44,18 @@ export default class ModalTrigger extends React.Component {
     this.onTableEditAction = this.onTableEditAction.bind(this);
   }
 
+  componentDidMount() {
+    console.log("Api calling");
+    fetch("https://jsonplaceholder.typicode.com/users")
+      .then(result => result.json())
+      .then(data => {
+        this.setState(() => ({
+          apiData: data
+        }));
+        console.log("After Api", this.state);
+      });
+  }
+
   close() {
     this.setState(() => ({
       showModal: false,
@@ -63,7 +76,7 @@ export default class ModalTrigger extends React.Component {
     this.setState(() => ({
       showModal: true,
       tableEditAction: true,
-      eventData: eventData
+      eventData: []
     }));
   }
 
@@ -91,36 +104,75 @@ export default class ModalTrigger extends React.Component {
   }
 
   renderTableEditModal() {
-    return (
-      <Modal
-        animation={this.props.animation}
-        show={this.state.showModal}
-        onHide={this.close}
-        onExit={this.props.onExit}
-        bsSize="lg"
-        className={this.props.className}
-      >
-        {this.props.modalTitle && (
-          <Modal.Header closeButton>
-            <Modal.Title>View Table Data</Modal.Title>
-          </Modal.Header>
-        )}
-        <Modal.Body>
-          <Table striped bordered hover>
-            <thead>
-              {Object.keys(this.state.eventData).map(key => {
-                return <th>{key}</th>;
-              })}
-            </thead>
-            <tbody>
-              {Object.values(this.state.eventData).map(val => {
-                return <td>{val}</td>;
-              })}
-            </tbody>
-          </Table>
-        </Modal.Body>
-      </Modal>
-    );
+    console.log("State", this.state);
+    if (this.state.apiData !== undefined) {
+      return (
+        <Modal
+          animation={this.props.animation}
+          show={this.state.showModal}
+          onHide={this.close}
+          onExit={this.props.onExit}
+          bsSize="lg"
+          className={this.props.className}
+        >
+          {this.props.modalTitle && (
+            <Modal.Header closeButton>
+              <Modal.Title>View Table Data</Modal.Title>
+            </Modal.Header>
+          )}
+          <Modal.Body>
+            <Table striped bordered hover>
+              <thead>
+               {Object.keys(this.state.apiData[0]).map((key) => {
+                 return(
+                   <th>{key}</th>
+                 )
+               })}
+              </thead>
+              <tbody>
+                {this.state.apiData.map((value) => {
+                  Object.values(value).map((val) => {
+                    console.log(val)
+                    return(
+                      <tr>
+                        <td>{val}</td>
+                      </tr>
+                    )
+                  })
+                })}
+              </tbody>
+            </Table>
+          </Modal.Body>
+        </Modal>
+      );
+    } else {
+      return (
+        <Modal
+          animation={this.props.animation}
+          show={this.state.showModal}
+          onHide={this.close}
+          onExit={this.props.onExit}
+          bsSize="lg"
+          className={this.props.className}
+        >
+          {this.props.modalTitle && (
+            <Modal.Header closeButton>
+              <Modal.Title>View Table Data</Modal.Title>
+            </Modal.Header>
+          )}
+          <Modal.Body>
+            <Table striped bordered hover>
+              <thead>
+                <th>Test Data Header</th>
+              </thead>
+              <tbody>
+                <td>Test Data</td>
+              </tbody>
+            </Table>
+          </Modal.Body>
+        </Modal>
+      );
+    }
   }
 
   render() {

@@ -3015,6 +3015,23 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
+    @expose('/hello')
+    def hello(self):
+        """Personalized hello page"""
+
+        payload = {
+            'myData': 'Test',
+            'user': 'Data',
+            'common': self.common_bootsrap_payload(),
+        }
+
+        return self.render_template(
+            'superset/basic.html',
+            entry='ponmaari',
+            title='Superset',
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+        )
+
     @has_access
     @expose('/profile/<username>/')
     def profile(self, username):

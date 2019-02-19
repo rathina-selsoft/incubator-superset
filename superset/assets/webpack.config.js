@@ -101,6 +101,7 @@ const config = {
     sqllab: addPreamble('/src/SqlLab/index.jsx'),
     welcome: addPreamble('/src/welcome/index.jsx'),
     profile: addPreamble('/src/profile/index.jsx'),
+    ponmaari: addPreamble('/src/ponmaari/index.jsx')
   },
   output,
   optimization: {

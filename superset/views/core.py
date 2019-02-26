@@ -1251,7 +1251,7 @@ class Superset(BaseSupersetView):
                 viz_obj.get_xlsx(),
                 status=200,
                 headers=generate_download_headers('xlsx'),
-                mimetype='application/csv')
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
         if query:
             return self.get_query_string_response(viz_obj)

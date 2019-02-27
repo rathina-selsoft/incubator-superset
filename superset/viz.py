@@ -26,7 +26,6 @@ from geopy.point import Point
 from markdown import markdown
 import numpy as np
 import pandas as pd
-from pandas import ExcelWriter
 from pandas.tseries.frequencies import to_offset
 from past.builtins import basestring
 import polyline
@@ -493,12 +492,12 @@ class BaseViz(object):
     def get_xlsx(self):
         df = self.get_df()         
         include_index = not isinstance(df.index, pd.RangeIndex,) 
-        sio = IO()     
-        PandasWriter = pd.ExcelWriter(sio)
-        df.to_excel(PandasWriter, index=include_index)
-        PandasWriter.save()
-        sio.seek(0)
-        return sio.getvalue()
+        str_io = IO()     
+        pandas_writer = pd.ExcelWriter(str_io)
+        df.to_excel(pandas_writer, index=include_index)
+        pandas_writer.save()
+        str_io.seek(0)
+        return str_io.getvalue()
 
     def get_data(self, df):
         return df.to_dict(orient='records')

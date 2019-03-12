@@ -53,6 +53,7 @@ import DeckPath from './DeckPath';
 import DeckPolygon from './DeckPolygon';
 import DeckScatter from './DeckScatter';
 import DeckScreengrid from './DeckScreengrid';
+import AnomalyLine from './AnomalyLine';
 
 export const controlPanelConfigs = {
   area: Area,
@@ -103,7 +104,7 @@ export const controlPanelConfigs = {
   deck_polygon: DeckPolygon,
   deck_scatter: DeckScatter,
   deck_screengrid: DeckScreengrid,
-
+  anomaly_line: AnomalyLine
 };
 
 export default controlPanelConfigs;

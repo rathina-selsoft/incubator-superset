@@ -439,6 +439,22 @@ function nvd3Vis(element, props) {
       case "bullet":
         chart = nv.models.bulletChart();
         break;
+      
+        case "anomaly_line":
+        if (canShowBrush) {
+          chart = nv.models.lineWithFocusChart();
+          if (staggerLabels) {
+            // Give a bit more room to focus area if X axis ticks are staggered
+            chart.focus.margin({ bottom: 40 });
+            chart.focusHeight(80);
+          }
+          chart.focus.xScale(d3.time.scale.utc());
+        } else {
+          chart = nv.models.lineChart();
+        }
+        chart.xScale(d3.time.scale.utc());
+        chart.interpolate(lineInterpolation);
+        break;
 
       default:
         throw new Error("Unrecognized visualization for nvd3" + vizType);
@@ -584,19 +600,52 @@ function nvd3Vis(element, props) {
     chart.height(height);
     container.style.height = `${height}px`;
 
-    svg
-      .append("rect")
-      .attr("width", width)
-      .attr("height", 36)
-      .attr("class", "background");
+    if (vizType === 'anomaly_line') {
+      console.log('anomaly_line')
+      svg
+        .datum(data)
+        .transition().duration(500)
+        .attr('height', height)
+        .attr('width', width)
+        .call(chart);
 
-    svg
-      .datum(data)
-      .transition()
-      .duration(500)
-      .attr("height", height)
-      .attr("width", width)
-      .call(chart);
+      d3.select('.nv-point-paths')
+        .selectAll("circle.myPoint")
+        .remove();
+
+      var points = d3.select('.nv-point-paths')
+        .selectAll("circle.myPoint")
+        .data(data[0].values);
+
+      points.enter().append("circle")
+        .attr("class", "myPoint")
+        .attr('fill', 'red')
+        .attr("cx", function (d) { return chart.xAxis.scale()(d.x); })
+        .attr("cy", function (d) { return chart.yAxis.scale()(d.y); })
+        .attr("r", 5);
+
+    } else {
+      svg
+        .datum(data)
+        .transition().duration(500)
+        .attr('height', height)
+        .attr('width', width)
+        .call(chart);
+    }
+
+    // svg
+    //   .append("rect")
+    //   .attr("width", width)
+    //   .attr("height", 36)
+    //   .attr("class", "background");
+
+    // svg
+    //   .datum(data)
+    //   .transition()
+    //   .duration(500)
+    //   .attr("height", height)
+    //   .attr("width", width)
+    //   .call(chart);
 
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(["dual_line", "line_multi"])) {
